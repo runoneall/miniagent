@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"miniagent/agent/internal/agentfile"
 	"miniagent/config"
 	"time"
 
@@ -15,9 +16,8 @@ import (
 )
 
 func Run() error {
-	cfg := config.Get()
-
 	for {
+		cfg := config.Get()
 		ctx := context.Background()
 
 		model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
@@ -61,8 +61,13 @@ func Run() error {
 			EnableStreaming: true,
 		})
 
+		content, err := agentfile.Read()
+		if err != nil {
+			return err
+		}
+
 		input := []adk.Message{
-			schema.UserMessage("<TODO>"),
+			schema.UserMessage(content),
 		}
 
 		events := runner.Run(ctx, input)
