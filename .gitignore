@@ -33,3 +33,5 @@ go.work.sum
 
 # miniagent
 miniagent.json
+kv-store.json
+agent.md

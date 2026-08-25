@@ -2,7 +2,10 @@ module miniagent
 
 go 1.25.12
 
-require github.com/spf13/cobra v1.10.2
+require (
+	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
+	github.com/spf13/cobra v1.10.2
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
