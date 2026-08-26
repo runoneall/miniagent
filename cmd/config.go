@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"miniagent/config"
 
@@ -21,6 +23,16 @@ var configCmd = &cobra.Command{
 		AgentFile, _ := cmd.Flags().GetString("agent-file")
 		if AgentFile != "" {
 			cfg.AgentFile = AgentFile
+		}
+
+		if KVStoreFile == "" && AgentFile == "" {
+			rawJSON, err := json.MarshalIndent(cfg, "", config.Indent)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fmt.Println(string(rawJSON))
+			return
 		}
 
 		if err := config.Dump(cfg); err != nil {

@@ -39,7 +39,7 @@ func Load() error {
 			return err
 		}
 
-		if err := json.NewEncoder(f).Encode(cfg); err != nil {
+		if err := jsonNewEncoder(f).Encode(cfg); err != nil {
 			return err
 		}
 	}

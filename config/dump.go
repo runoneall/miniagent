@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
 )
 
@@ -15,7 +14,7 @@ func Dump(cfg1 Config) error {
 	}
 
 	defer f.Close()
-	if err := json.NewEncoder(f).Encode(cfg1); err != nil {
+	if err := jsonNewEncoder(f).Encode(cfg1); err != nil {
 		return err
 	}
 

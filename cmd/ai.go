@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"miniagent/config"
 
@@ -26,6 +28,16 @@ var aiCmd = &cobra.Command{
 		Model, _ := cmd.Flags().GetString("model")
 		if Model != "" {
 			cfg.AI.Model = Model
+		}
+
+		if BaseURL == "" && APIKey == "" && Model == "" {
+			rawJSON, err := json.MarshalIndent(cfg.AI, "", config.Indent)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fmt.Println(string(rawJSON))
+			return
 		}
 
 		if err := config.Dump(cfg); err != nil {
