@@ -66,10 +66,12 @@ func Run() error {
 			Model:       model,
 			Name:        "miniagent",
 			Description: "A friendly, all-around agent",
+
 			Instruction: fmt.Sprintf(
 				"You are a friendly, all-around agent. Current Time: %s. Time Zone: %s. Please respond to the user in a warm tone.",
 				currentTime, timeZone,
 			),
+
 			ToolsConfig: adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{
 					Tools: append(kvTools, mcptools.Tools()...),
@@ -82,6 +84,7 @@ func Run() error {
 
 									output, err := next(ctx, input)
 									if err != nil {
+										fmt.Fprint(render, "\n\n")
 										logger.Printf("ERROR %v\n\n", err)
 
 										return &compose.ToolOutput{
@@ -134,6 +137,7 @@ func Run() error {
 						}
 
 						if err != nil {
+							fmt.Fprint(render, "\n\n")
 							logger.Printf("ERROR %v\n\n", err)
 							break
 						}
@@ -147,5 +151,6 @@ func Run() error {
 		}
 
 		fmt.Fprint(render, "\n\n")
+		logger.Print("INFO Agent 已退出任务\n\n")
 	}
 }
