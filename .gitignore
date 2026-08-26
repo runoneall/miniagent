@@ -35,3 +35,6 @@ go.work.sum
 miniagent.json
 kv-store.json
 agent.md
+
+# mcp
+.playwright-mcp/
