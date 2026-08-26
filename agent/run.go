@@ -9,6 +9,7 @@ import (
 	"miniagent/agent/internal/agentfile"
 	"miniagent/agent/internal/kvstore"
 	"miniagent/agent/internal/markdown/terminal"
+	"miniagent/agent/internal/mcptools"
 	"miniagent/config"
 	"os"
 	"time"
@@ -21,6 +22,10 @@ import (
 
 func Run() error {
 	if err := kvstore.Init(); err != nil {
+		return err
+	}
+
+	if err := mcptools.Init(); err != nil {
 		return err
 	}
 
@@ -67,7 +72,7 @@ func Run() error {
 			),
 			ToolsConfig: adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{
-					Tools: kvTools,
+					Tools: append(kvTools, mcptools.Tools()...),
 					ToolCallMiddlewares: []compose.ToolMiddleware{
 						{
 							Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {

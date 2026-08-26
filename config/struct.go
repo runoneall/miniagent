@@ -14,10 +14,14 @@ type AI struct {
 }
 
 type MCP struct {
-	Name       string            `json:"name"`
 	Type       string            `json:"type"`
 	URL        string            `json:"url"`
 	HTTPHeader map[string]string `json:"http_header"`
 	Command    string            `json:"command"`
 	EnvVars    map[string]string `json:"env_vars"`
 }
+
+const (
+	MCPTypeStdio = "stdio"
+	MCPTypeHTTP  = "http"
+)
