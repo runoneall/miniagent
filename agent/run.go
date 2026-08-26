@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"miniagent/agent/internal/agentfile"
 	"miniagent/agent/internal/kvstore"
+	"miniagent/agent/internal/markdown/terminal"
 	"miniagent/config"
+	"os"
 	"time"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
@@ -25,6 +27,8 @@ func Run() error {
 	for {
 		cfg := config.Get()
 		ctx := context.Background()
+		render := terminal.NewStreamRenderer(os.Stdout)
+		logger := log.New(render, "", log.LstdFlags)
 
 		model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
 			BaseURL: cfg.AI.BaseURL,
@@ -68,12 +72,12 @@ func Run() error {
 						{
 							Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
 								return func(ctx context.Context, input *compose.ToolInput) (*compose.ToolOutput, error) {
-									fmt.Print("\n")
-									slog.Info("工具调用", "tool", input.Name, "arguments", input.Arguments)
+									fmt.Fprint(render, "\n\n")
+									logger.Printf("INFO 工具调用 tool=%s arguments=%s\n\n", input.Name, input.Arguments)
 
 									output, err := next(ctx, input)
 									if err != nil {
-										slog.Error(err.Error())
+										logger.Printf("ERROR %v\n\n", err)
 
 										return &compose.ToolOutput{
 											Result: fmt.Sprintf("Tool %s execution failed with error: %v. Please correct your input or handle this fallback.", input.Name, err),
@@ -125,18 +129,18 @@ func Run() error {
 						}
 
 						if err != nil {
-							slog.Error(err.Error())
+							logger.Printf("ERROR %v\n\n", err)
 							break
 						}
 
 						if msg != nil {
-							fmt.Print(msg.Content)
+							fmt.Fprint(render, msg.Content)
 						}
 					}
 				}
 			}
 		}
 
-		fmt.Print("\n")
+		fmt.Fprint(render, "\n\n")
 	}
 }
