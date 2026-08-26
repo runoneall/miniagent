@@ -27,7 +27,7 @@ func Run() error {
 	for {
 		cfg := config.Get()
 		ctx := context.Background()
-		render := terminal.NewStreamRenderer(os.Stdout)
+		render := terminal.NewLiveRenderer(os.Stdout)
 		logger := log.New(render, "", log.LstdFlags)
 
 		model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
