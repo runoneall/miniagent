@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"miniagent/agent/internal/agentfile"
 	"miniagent/agent/internal/kvstore"
 	"miniagent/agent/internal/markdown/terminal"
@@ -38,27 +39,29 @@ func Run() error {
 		render := terminal.NewStreamRenderer(os.Stdout)
 		logger := log.New(render, "", log.LstdFlags)
 
+		var (
+			MaxTokens           int     = 16384
+			MaxCompletionTokens         = MaxTokens
+			Temperature         float32 = 0.1
+			PresencePenalty     float32 = 0.2
+			FrequencyPenalty            = PresencePenalty
+		)
+
 		model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-			BaseURL: cfg.AI.BaseURL,
-			APIKey:  cfg.AI.APIKey,
-			Model:   cfg.AI.Model,
+			BaseURL:             cfg.AI.BaseURL,
+			APIKey:              cfg.AI.APIKey,
+			Model:               cfg.AI.Model,
+			MaxTokens:           &MaxTokens,
+			MaxCompletionTokens: &MaxCompletionTokens,
+			Temperature:         &Temperature,
+			PresencePenalty:     &PresencePenalty,
+			FrequencyPenalty:    &FrequencyPenalty,
+			ReasoningEffort:     openai.ReasoningEffortLevelHigh,
 		})
 
 		if err != nil {
 			return err
 		}
-
-		now := time.Now()
-		currentTime := now.Format("2006-01-02 15:04:05")
-
-		zoneName, offset := now.Zone()
-		timeZone := fmt.Sprintf("%s (UTC%s%d)", zoneName, func() string {
-			if offset >= 0 {
-				return "+"
-			}
-
-			return ""
-		}(), offset/3600)
 
 		kvTools, err := kvstore.Tools()
 		if err != nil {
@@ -66,14 +69,11 @@ func Run() error {
 		}
 
 		agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
-			Model:       model,
-			Name:        "miniagent",
-			Description: "A friendly, all-around agent",
-
-			Instruction: fmt.Sprintf(
-				"You are a friendly, all-around agent. Current Time: %s. Time Zone: %s. Please respond to the user in a warm tone.",
-				currentTime, timeZone,
-			),
+			Model:         model,
+			Name:          "miniagent",
+			Description:   "A friendly, all-around agent",
+			Instruction:   "You are a friendly, all-around agent.",
+			MaxIterations: math.MaxInt,
 
 			ToolsConfig: adk.ToolsConfig{
 				ToolsNodeConfig: compose.ToolsNodeConfig{
@@ -108,10 +108,17 @@ func Run() error {
 			return err
 		}
 
-		runner := adk.NewRunner(ctx, adk.RunnerConfig{
-			Agent:           agent,
-			EnableStreaming: true,
-		})
+		now := time.Now()
+		currentTime := now.Format("2006-01-02 15:04:05")
+
+		zoneName, offset := now.Zone()
+		timeZone := fmt.Sprintf("%s (UTC%s%d)", zoneName, func() string {
+			if offset >= 0 {
+				return "+"
+			}
+
+			return ""
+		}(), offset/3600)
 
 		tellAgent, err := agentfile.Read()
 		if err != nil {
@@ -119,13 +126,25 @@ func Run() error {
 		}
 
 		input := []adk.Message{
+			schema.SystemMessage(fmt.Sprintf("Current Time: %s. Time Zone: %s.", currentTime, timeZone)),
 			schema.UserMessage(tellAgent),
 		}
+
+		runner := adk.NewRunner(ctx, adk.RunnerConfig{
+			Agent:           agent,
+			EnableStreaming: true,
+		})
 
 		events := runner.Run(ctx, input)
 		for {
 			event, ok := events.Next()
 			if !ok {
+				break
+			}
+
+			if event.Err != nil {
+				fmt.Fprint(render, "\n\n")
+				logger.Printf("ERROR %v\n\n", event.Err)
 				break
 			}
 
