@@ -2,6 +2,7 @@ package mcptools
 
 import (
 	"context"
+	"miniagent/agent/internal/onexit"
 	"miniagent/config"
 	"sync"
 
@@ -24,6 +25,10 @@ func Init() error {
 		if err != nil {
 			return err
 		}
+
+		onexit.Do(func() {
+			cli.Close()
+		})
 
 		mcpTool, err := getMCPTool(cli)
 		if err != nil {

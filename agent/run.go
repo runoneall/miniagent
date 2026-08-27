@@ -10,6 +10,7 @@ import (
 	"miniagent/agent/internal/kvstore"
 	"miniagent/agent/internal/markdown/terminal"
 	"miniagent/agent/internal/mcptools"
+	"miniagent/agent/internal/onexit"
 	"miniagent/config"
 	"os"
 	"time"
@@ -21,6 +22,8 @@ import (
 )
 
 func Run() error {
+	onexit.Listen()
+
 	if err := kvstore.Init(); err != nil {
 		return err
 	}
