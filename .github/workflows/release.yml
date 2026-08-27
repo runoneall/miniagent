@@ -1,0 +1,53 @@
+name: release
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout
+              uses: actions/checkout@main
+
+            - name: setup go
+              uses: actions/setup-go@main
+              with:
+                  go-version: '1.25.12'
+
+            - name: make build dir
+              run: mkdir -p .github/build
+
+            - name: save build targets
+              run: go tool dist list -json > .github/build/targets.json
+
+            - name: make dist dir
+              run: mkdir -p .github/build/dist
+
+            - name: install dependencies
+              run: go mod tidy
+
+            - name: run build
+              run: go run .github/scripts/build.go
+
+            - name: list dist
+              run: ls -alh .github/build/dist
+
+            - name: get time
+              run: echo "RELEASE_TIME=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+            - name: create release
+              uses: softprops/action-gh-release@master
+
+              with:
+                  tag_name: ${{ env.RELEASE_TIME }}
+                  name: ${{ env.RELEASE_TIME }}
+                  draft: false
+                  prerelease: false
+                  files: .github/build/dist/*
+
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
