@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"math"
 	"miniagent/agent/internal/agentfile"
 	"miniagent/agent/internal/kvstore"
 	"miniagent/agent/internal/mcptools"
 	"miniagent/agent/internal/onexit"
+	"miniagent/agent/internal/stdout"
 	"miniagent/config"
 	"time"
 
@@ -34,6 +35,7 @@ func Run() error {
 	for {
 		cfg := config.Get()
 		ctx := context.Background()
+		logger := log.New(stdout.Writer, "", log.LstdFlags)
 
 		var (
 			MaxTokens           int = 16384
@@ -71,12 +73,12 @@ func Run() error {
 						{
 							Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
 								return func(ctx context.Context, input *compose.ToolInput) (*compose.ToolOutput, error) {
-									fmt.Println()
-									slog.Info("工具调用", "tool", input.Name, "arguments", input.Arguments)
+									fmt.Fprintln(stdout.Writer)
+									logger.Printf("INFO 工具调用 tool=%s arguments=%s\n", input.Name, input.Arguments)
 
 									output, err := next(ctx, input)
 									if err != nil {
-										slog.Error(err.Error())
+										logger.Printf("ERROR %v\n", err)
 
 										return &compose.ToolOutput{
 											Result: fmt.Sprintf("Tool %s execution failed with error: %v. Please correct your input or handle this fallback.", input.Name, err),
@@ -131,7 +133,7 @@ func Run() error {
 			}
 
 			if event.Err != nil {
-				slog.Error(event.Err.Error())
+				logger.Printf("ERROR %v\n", event.Err)
 				break
 			}
 
@@ -146,19 +148,19 @@ func Run() error {
 						}
 
 						if err != nil {
-							slog.Error(err.Error())
+							logger.Printf("ERROR %v\n", err)
 							break
 						}
 
 						if msg != nil {
-							fmt.Print(msg.Content)
+							fmt.Fprint(stdout.Writer, msg.Content)
 						}
 					}
 				}
 			}
 		}
 
-		fmt.Println()
-		slog.Info("Agent 已退出任务")
+		fmt.Fprintln(stdout.Writer)
+		logger.Println("INFO Agent 已退出任务")
 	}
 }
