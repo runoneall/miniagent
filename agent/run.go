@@ -5,15 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"math"
 	"miniagent/agent/internal/agentfile"
 	"miniagent/agent/internal/kvstore"
-	"miniagent/agent/internal/markdown/terminal"
 	"miniagent/agent/internal/mcptools"
 	"miniagent/agent/internal/onexit"
 	"miniagent/config"
-	"os"
 	"time"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
@@ -36,15 +34,10 @@ func Run() error {
 	for {
 		cfg := config.Get()
 		ctx := context.Background()
-		render := terminal.NewStreamRenderer(os.Stdout)
-		logger := log.New(render, "", log.LstdFlags)
 
 		var (
-			MaxTokens           int     = 16384
-			MaxCompletionTokens         = MaxTokens
-			Temperature         float32 = 0.1
-			PresencePenalty     float32 = 0.2
-			FrequencyPenalty            = PresencePenalty
+			MaxTokens           int = 16384
+			MaxCompletionTokens     = MaxTokens
 		)
 
 		model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
@@ -53,10 +46,6 @@ func Run() error {
 			Model:               cfg.AI.Model,
 			MaxTokens:           &MaxTokens,
 			MaxCompletionTokens: &MaxCompletionTokens,
-			Temperature:         &Temperature,
-			PresencePenalty:     &PresencePenalty,
-			FrequencyPenalty:    &FrequencyPenalty,
-			ReasoningEffort:     openai.ReasoningEffortLevelHigh,
 		})
 
 		if err != nil {
@@ -82,13 +71,12 @@ func Run() error {
 						{
 							Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
 								return func(ctx context.Context, input *compose.ToolInput) (*compose.ToolOutput, error) {
-									fmt.Fprint(render, "\n\n")
-									logger.Printf("INFO 工具调用 tool=%s arguments=%s\n\n", input.Name, input.Arguments)
+									fmt.Println()
+									slog.Info("工具调用", "tool", input.Name, "arguments", input.Arguments)
 
 									output, err := next(ctx, input)
 									if err != nil {
-										fmt.Fprint(render, "\n\n")
-										logger.Printf("ERROR %v\n\n", err)
+										slog.Error(err.Error())
 
 										return &compose.ToolOutput{
 											Result: fmt.Sprintf("Tool %s execution failed with error: %v. Please correct your input or handle this fallback.", input.Name, err),
@@ -143,8 +131,7 @@ func Run() error {
 			}
 
 			if event.Err != nil {
-				fmt.Fprint(render, "\n\n")
-				logger.Printf("ERROR %v\n\n", event.Err)
+				slog.Error(event.Err.Error())
 				break
 			}
 
@@ -159,20 +146,19 @@ func Run() error {
 						}
 
 						if err != nil {
-							fmt.Fprint(render, "\n\n")
-							logger.Printf("ERROR %v\n\n", err)
+							slog.Error(err.Error())
 							break
 						}
 
 						if msg != nil {
-							fmt.Fprint(render, msg.Content)
+							fmt.Print(msg.Content)
 						}
 					}
 				}
 			}
 		}
 
-		fmt.Fprint(render, "\n\n")
-		logger.Print("INFO Agent 已退出任务\n\n")
+		fmt.Println()
+		slog.Info("Agent 已退出任务")
 	}
 }
